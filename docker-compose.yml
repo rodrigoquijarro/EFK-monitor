@@ -1,0 +1,90 @@
+version: '3'
+# *********************************************************************
+# *                        Schneider EFK-Stack                        *
+# *********************************************************************
+#
+# Schneider EFK-Stack services to be installed:
+# 1. Schneider Custom Fluentd (Based on Fluentd v1.11 Official Version).
+# 2. Elasticsearch with xpack-security plugin (v 7.5.0).
+# 3. Kibana (v7.5.0).
+services:
+
+# ==============================SERVICES===============================
+# **SCHNEIDER FLUENTD CUSTOM IMAGE**
+
+  fluentd:
+    image: custom-fluentd
+    container_name: fluentd
+    volumes:
+      - ./fluentd/conf:/fluentd/etc
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+      - "24225:24225/udp"
+
+# Notes:
+# a) Fluentd port services can be modified, depending on the log source souce.
+# b) Port 24224 - Receiving Events from ConneXium TCSESM-E(udp) and SyslogAgent(udp).
+# c) Port 24225 - Receiving Events from Kaspersky Industrial CyberSecurity - KICS.
+# ----------------------------------------------------------------------
+
+# **ELASTICSEARCH**
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.5.0
+    container_name: elasticsearch
+    environment:
+      - node.name=elasticsearch
+      - discovery.seed_hosts=elasticsearch
+      - cluster.initial_master_nodes=elasticsearch
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.keystore.type=PKCS12
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.keystore.path=elastic-stack-ca.p12
+      - xpack.security.transport.ssl.truststore.path=elastic-stack-ca.p12
+      - xpack.security.transport.ssl.truststore.type=PKCS12
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elastic-stack-ca.p12:/usr/share/elasticsearch/config/elastic-stack-ca.p12
+      - esdata1:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+
+# Notes:
+# a) Elasticsearch requires vm.max_map_count set to 262144 - Already set in Docker-Engine inatallation.  
+# b) xpack.security enabled. Elasticsearch requires CA Certificates and Setup-Passwords configuration.
+# c) Elasticsearch access console 'srvsyslog.sch.net:9200' or 'localhost:9200'
+# d) Elasticsearch is working with not containerized volume. For additional actions please refer to /usr/share/elasticsearch/data. 
+# ----------------------------------------------------------------------
+
+# **KIBANA**
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.5.0
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_URL="http://elasticsearch:9200"
+      - ELASTICSEARCH_USERNAME="kibana"
+      - ELASTICSEARCH_PASSWORD="QWErty123"
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+
+# Notes:
+# a) Kibana access console 'srvsyslog.sch.net:5601' or 'localhost:5601'
+# ----------------------------------------------------------------------
+
+# EXTERNAL STORAGE VOLUME
+
+volumes:
+  esdata1:
+    driver: local
+
+# =====================================================================
