@@ -2,7 +2,7 @@
 # Loading Docker Images for: Fluentd:custom-fluentd.tar | Elasticsearch:elasticsearch.tar | Kibana:kibana.tar
 cd td-agent-server
 sudo dpkg -i td-agent_3.7.1-0_amd64.deb
-echo ">>> TD-Agent Server installation complete, applying configuration to connect Schneider EFK-Stack Server..."
+echo ">>> TD-Agent Server installation complete, applying configuration to connect EFK-Stack Server..."
 sudo cp td-agent.conf /etc/td-agent/
 echo ">>> TD-Agent-EFK Server configuration applied!"
 echo ">>> Restarting TD-Agent Server EFK services..."
